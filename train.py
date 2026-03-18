@@ -38,25 +38,28 @@ class Trainer:
         model_name += f"_f{self.cfg.frameskip}_h{self.cfg.num_hist}_p{self.cfg.num_pred}"
 
         if HydraConfig.get().mode == RunMode.MULTIRUN:
-            log.info(" Multirun setup begin...")
-            log.info(f"SLURM_JOB_NODELIST={os.environ['SLURM_JOB_NODELIST']}")
-            log.info(f"DEBUGVAR={os.environ['DEBUGVAR']}")
-            # ==== init ddp process group ====
-            os.environ["RANK"] = os.environ["SLURM_PROCID"]
-            os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
-            os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
-            try:
-                dist.init_process_group(
-                    backend="nccl",
-                    init_method="env://",
-                    timeout=timedelta(minutes=5),  # Set a 5-minute timeout
-                )
-                log.info("Multirun setup completed.")
-            except Exception as e:
-                log.error(f"DDP setup failed: {e}")
-                raise
-            torch.distributed.barrier()
-            # # ==== /init ddp process group ====
+            if "SLURM_PROCID" in os.environ:
+                log.info(" Multirun setup begin...")
+                log.info(f"SLURM_JOB_NODELIST={os.environ.get('SLURM_JOB_NODELIST', '')}")
+                log.info(f"DEBUGVAR={os.environ.get('DEBUGVAR', '')}")
+                # ==== init ddp process group ====
+                os.environ["RANK"] = os.environ["SLURM_PROCID"]
+                os.environ["WORLD_SIZE"] = os.environ["SLURM_NTASKS"]
+                os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
+                try:
+                    dist.init_process_group(
+                        backend="nccl",
+                        init_method="env://",
+                        timeout=timedelta(minutes=5),  # Set a 5-minute timeout
+                    )
+                    log.info("Multirun setup completed.")
+                except Exception as e:
+                    log.error(f"DDP setup failed: {e}")
+                    raise
+                torch.distributed.barrier()
+                # # ==== /init ddp process group ====
+            else:
+                log.info("Multirun setup bypassed because SLURM_PROCID is not in os.environ. Proceeding with local configuration.")
 
         mixed_precision = self.cfg.training.get("mixed_precision", "no")
         self.accelerator = Accelerator(

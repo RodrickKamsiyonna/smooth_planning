@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - override hydra/launcher: submitit_slurm
+  - override hydra/launcher: basic
 
 hydra:
   run:
