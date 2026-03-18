@@ -6,7 +6,7 @@ defaults:
   - proprio_encoder: proprio
   - decoder: vqvae
   - predictor: vit
-  - override hydra/launcher: submitit_slurm
+  - override hydra/launcher: basic
 
 # base path to save model outputs. Checkpoints will be saved to ${ckpt_base_path}
 ckpt_base_path: ./checkpoints
